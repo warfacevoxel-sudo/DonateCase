@@ -1,6 +1,7 @@
 package com.jodexindustries.dcphysicalkey.tools;
 
 import com.jodexindustries.dcphysicalkey.bootstrap.MainAddon;
+import com.jodexindustries.donatecase.api.tools.DCTools;
 import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.inventory.ItemStack;
@@ -33,11 +34,25 @@ public class ItemManager {
             ConfigurationSection keySection = section.getConfigurationSection(key);
             if (keySection == null) return;
 
-            Material material = Material.getMaterial(keySection.getString("material", "STONE"));
-            if (material == null) {
-                addon.getLogger().warning("Key " + key + ": Material not found. Skipping this key.");
-                continue;
+            String materialId = keySection.getString("material", "STONE");
+
+            // --- ПАТЧ: сначала пробуем ванильный Material, если не нашли —
+            // пробуем через общий MaterialManager ядра (NEXO:, HEAD:, IA:, ORAXEN: и т.д.) ---
+            ItemStack itemStack;
+            Material material = Material.getMaterial(materialId);
+
+            if (material != null) {
+                itemStack = new ItemStack(material);
+            } else {
+                Object resolved = DCTools.getItemFromManager(materialId);
+                if (resolved instanceof ItemStack) {
+                    itemStack = ((ItemStack) resolved).clone();
+                } else {
+                    addon.getLogger().warning("Key " + key + ": Material not found. Skipping this key.");
+                    continue;
+                }
             }
+            // --- конец патча ---
 
             String caseType = keySection.getString("case-type", "");
             if (caseType.isEmpty()) {
@@ -53,7 +68,6 @@ public class ItemManager {
             String displayName = keySection.getString("display-name", "");
             List<String> lore = keySection.getStringList("lore");
 
-            ItemStack itemStack = new ItemStack(material);
             ItemMeta meta = itemStack.getItemMeta();
             if (meta == null) {
                 addon.getLogger().warning("Key " + key + ": Item meta is null. Skipping this key.");
