@@ -40,10 +40,17 @@ public class MainAddon extends InternalJavaAddon {
     @Override
     public void onEnable() {
         mainCommand.register();
-        itemManager.load();
         api.getEventBus().register(eventListener);
 
         Bukkit.getServer().getPluginManager().registerEvents(eventListener, BukkitUtils.getDonateCase());
+
+        // --- ПАТЧ: откладываем загрузку ключей на 1 тик, чтобы к этому моменту
+        // все material-фабрики (в т.ч. Nexo, ItemsAdder, Oraxen) уже были
+        // зарегистрированы в общем MaterialManager ядра. При старте сервера
+        // DCPhysicalKey enable'ится раньше финальной регистрации материалов,
+        // поэтому синхронная загрузка прямо тут падает с "Material not found".
+        Bukkit.getScheduler().runTask(BukkitUtils.getDonateCase(), itemManager::load);
+        // --- конец патча ---
     }
 
     @Override
