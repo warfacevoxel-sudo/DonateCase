@@ -14,6 +14,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static com.jodexindustries.donatecase.api.tools.DCTools.rc;
 
@@ -101,7 +102,20 @@ public class MainCommand implements SubCommandExecutor, SubCommandTabCompleter {
 
         itemStack.setAmount(amount);
 
-        targetPlayer.getInventory().addItem(itemStack);
+        // --- ПАТЧ: если в инвентаре не хватило места, остаток дропаем рядом с игроком ---
+        Map<Integer, ItemStack> leftover = targetPlayer.getInventory().addItem(itemStack);
+
+        if (!leftover.isEmpty()) {
+            for (ItemStack notFitted : leftover.values()) {
+                targetPlayer.getWorld().dropItemNaturally(targetPlayer.getLocation(), notFitted);
+            }
+            sender.sendMessage(rc(
+                    config.get().getString("messages.inventory-full",
+                            "&eУ игрока %player% не хватило места в инвентаре, часть ключей упала рядом с ним.")
+                            .replace("%player%", playerName)
+            ));
+        }
+        // --- конец патча ---
 
         sender.sendMessage(rc(
                 config.get().getString("messages.give-key", "")
